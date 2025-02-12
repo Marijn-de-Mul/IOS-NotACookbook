@@ -9,7 +9,7 @@ from recipe_generation import RecipeGenerator
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///recipes.db'
 app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB max upload size
 db = SQLAlchemy(app)
 swagger = Swagger(app)
 
@@ -36,7 +36,7 @@ class Recipe(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False)
     ingredients = db.Column(db.Text, nullable=False)
-    image_path = db.Column(db.String(200), nullable=True) 
+    image_path = db.Column(db.String(200), nullable=True)
 
     def as_dict(self):
         return {
@@ -203,6 +203,36 @@ def update_recipe(id):
     db.session.commit()
     return jsonify(recipe.as_dict())
 
+@app.route('/recipes/<int:id>', methods=['DELETE'])
+def delete_recipe(id):
+    """
+    Delete a recipe by ID
+    ---
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: The deleted recipe
+        schema:
+          type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+            ingredients:
+              type: string
+            image_path:
+              type: string
+    """
+    recipe = Recipe.query.get_or_404(id)
+    db.session.delete(recipe)
+    db.session.commit()
+    return jsonify({'message': 'Recipe deleted successfully'}), 200
+
 @app.route('/analyze_image', methods=['POST'])
 def analyze_image():
     """
@@ -241,7 +271,8 @@ def analyze_image():
     db.session.commit()
 
     return jsonify(recipe.as_dict())
+
 if __name__ == '__main__':
     if not os.path.exists(app.config['UPLOAD_FOLDER']):
         os.makedirs(app.config['UPLOAD_FOLDER'])
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
