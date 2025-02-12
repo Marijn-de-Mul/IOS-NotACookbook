@@ -9,7 +9,7 @@ from recipe_generation import RecipeGenerator
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///recipes.db'
 app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB max upload size
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  
 db = SQLAlchemy(app)
 swagger = Swagger(app)
 
