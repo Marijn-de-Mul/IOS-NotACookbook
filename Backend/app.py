@@ -10,7 +10,6 @@ from dotenv import load_dotenv
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -75,6 +74,33 @@ def log_response_info(response):
 
 @app.route('/register', methods=['POST'])
 def register():
+    """
+    Register a new user
+    ---
+    tags:
+      - User
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          required:
+            - username
+            - password
+          properties:
+            username:
+              type: string
+              description: The username for the new user
+            password:
+              type: string
+              description: The password for the new user
+    responses:
+      201:
+        description: User registered successfully
+      400:
+        description: Username and password are required or Username already exists
+    """
     logger.info("Register endpoint called")
     username = request.json.get('username')
     password = request.json.get('password')
@@ -95,6 +121,41 @@ def register():
 
 @app.route('/login', methods=['POST'])
 def login():
+    """
+    Login a user
+    ---
+    tags:
+      - User
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          required:
+            - username
+            - password
+          properties:
+            username:
+              type: string
+              description: The username of the user
+            password:
+              type: string
+              description: The password of the user
+    responses:
+      200:
+        description: User logged in successfully
+        schema:
+          type: object
+          properties:
+            access_token:
+              type: string
+              description: The JWT access token
+      400:
+        description: Username and password are required
+      401:
+        description: Invalid username or password
+    """
     logger.info("Login endpoint called")
     username = request.json.get('username')
     password = request.json.get('password')
@@ -114,6 +175,19 @@ def login():
 @app.route('/recipes', methods=['GET'])
 @jwt_required()
 def get_recipes():
+    """
+    Get all recipes for the authenticated user
+    ---
+    tags:
+      - Recipe
+    responses:
+      200:
+        description: A list of recipes
+        schema:
+          type: array
+          items:
+            $ref: '#/definitions/Recipe'
+    """
     logger.info("Get recipes endpoint called")
     user_id = get_jwt_identity()
     recipes = Recipe.query.filter_by(user_id=user_id).all()
@@ -123,6 +197,25 @@ def get_recipes():
 @app.route('/recipes/<int:id>', methods=['GET'])
 @jwt_required()
 def get_recipe(id):
+    """
+    Get a specific recipe by ID for the authenticated user
+    ---
+    tags:
+      - Recipe
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+        description: The ID of the recipe
+    responses:
+      200:
+        description: The recipe details
+        schema:
+          $ref: '#/definitions/Recipe'
+      404:
+        description: Recipe not found
+    """
     logger.info(f"Get recipe endpoint called for recipe ID {id}")
     user_id = get_jwt_identity()
     recipe = Recipe.query.filter_by(id=id, user_id=user_id).first_or_404()
@@ -132,6 +225,33 @@ def get_recipe(id):
 @app.route('/recipes', methods=['POST'])
 @jwt_required()
 def add_recipe():
+    """
+    Add a new recipe for the authenticated user
+    ---
+    tags:
+      - Recipe
+    parameters:
+      - name: name
+        in: formData
+        type: string
+        required: true
+        description: The name of the recipe
+      - name: ingredients
+        in: formData
+        type: string
+        required: true
+        description: The ingredients of the recipe
+      - name: image
+        in: formData
+        type: file
+        required: false
+        description: An optional image of the recipe
+    responses:
+      201:
+        description: Recipe added successfully
+        schema:
+          $ref: '#/definitions/Recipe'
+    """
     logger.info("Add recipe endpoint called")
     user_id = get_jwt_identity()
     name = request.form['name']
@@ -153,6 +273,40 @@ def add_recipe():
 @app.route('/recipes/<int:id>', methods=['PUT'])
 @jwt_required()
 def update_recipe(id):
+    """
+    Update a recipe by ID for the authenticated user
+    ---
+    tags:
+      - Recipe
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+        description: The ID of the recipe
+      - name: name
+        in: formData
+        type: string
+        required: true
+        description: The name of the recipe
+      - name: ingredients
+        in: formData
+        type: string
+        required: true
+        description: The ingredients of the recipe
+      - name: image
+        in: formData
+        type: file
+        required: false
+        description: An optional image of the recipe
+    responses:
+      200:
+        description: Recipe updated successfully
+        schema:
+          $ref: '#/definitions/Recipe'
+      404:
+        description: Recipe not found
+    """
     logger.info(f"Update recipe endpoint called for recipe ID {id}")
     user_id = get_jwt_identity()
     recipe = Recipe.query.filter_by(id=id, user_id=user_id).first_or_404()
@@ -175,6 +329,23 @@ def update_recipe(id):
 @app.route('/recipes/<int:id>', methods=['DELETE'])
 @jwt_required()
 def delete_recipe(id):
+    """
+    Delete a recipe by ID for the authenticated user
+    ---
+    tags:
+      - Recipe
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+        description: The ID of the recipe
+    responses:
+      200:
+        description: Recipe deleted successfully
+      404:
+        description: Recipe not found
+    """
     logger.info(f"Delete recipe endpoint called for recipe ID {id}")
     user_id = get_jwt_identity()
     recipe = Recipe.query.filter_by(id=id, user_id=user_id).first_or_404()
@@ -186,6 +357,25 @@ def delete_recipe(id):
 @app.route('/analyze_image', methods=['POST'])
 @jwt_required()
 def analyze_image():
+    """
+    Analyze an image to generate a recipe for the authenticated user
+    ---
+    tags:
+      - Recipe
+    parameters:
+      - name: image
+        in: formData
+        type: file
+        required: true
+        description: The image to analyze
+    responses:
+      200:
+        description: Recipe generated successfully
+        schema:
+          $ref: '#/definitions/Recipe'
+      400:
+        description: No image uploaded
+    """
     logger.info("Analyze image endpoint called")
     user_id = get_jwt_identity()
     image = request.files.get('image')
