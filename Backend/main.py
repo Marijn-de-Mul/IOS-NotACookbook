@@ -5,32 +5,21 @@ from flasgger import Swagger
 from werkzeug.utils import secure_filename
 from image_recognition import ImageRecognizer
 from recipe_generation import RecipeGenerator
+from dotenv import load_dotenv
+
+load_dotenv()
+
+os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = 'e:/IOS-NotACookbook/Backend/decisive-bazaar-450812-n8-247d0b92397c.json'
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///recipes.db'
 app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB max upload size
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  
 db = SQLAlchemy(app)
 swagger = Swagger(app)
 
-food101_class_names = [
-    'apple_pie', 'baby_back_ribs', 'baklava', 'beef_carpaccio', 'beef_tartare', 'beet_salad', 'beignets', 'bibimbap',
-    'bread_pudding', 'breakfast_burrito', 'bruschetta', 'caesar_salad', 'cannoli', 'caprese_salad', 'carrot_cake',
-    'ceviche', 'cheesecake', 'cheese_plate', 'chicken_curry', 'chicken_quesadilla', 'chicken_wings', 'chocolate_cake',
-    'chocolate_mousse', 'churros', 'clam_chowder', 'club_sandwich', 'crab_cakes', 'creme_brulee', 'croque_madame',
-    'cup_cakes', 'deviled_eggs', 'donuts', 'dumplings', 'edamame', 'eggs_benedict', 'escargots', 'falafel',
-    'filet_mignon', 'fish_and_chips', 'foie_gras', 'french_fries', 'french_onion_soup', 'french_toast', 'fried_calamari',
-    'fried_rice', 'frozen_yogurt', 'garlic_bread', 'gnocchi', 'greek_salad', 'grilled_cheese_sandwich', 'grilled_salmon',
-    'guacamole', 'gyoza', 'hamburger', 'hot_and_sour_soup', 'hot_dog', 'huevos_rancheros', 'hummus', 'ice_cream',
-    'lasagna', 'lobster_bisque', 'lobster_roll_sandwich', 'macaroni_and_cheese', 'macarons', 'miso_soup', 'mussels',
-    'nachos', 'omelette', 'onion_rings', 'oysters', 'pad_thai', 'paella', 'pancakes', 'panna_cotta', 'peking_duck',
-    'pho', 'pizza', 'pork_chop', 'poutine', 'prime_rib', 'pulled_pork_sandwich', 'ramen', 'ravioli', 'red_velvet_cake',
-    'risotto', 'samosa', 'sashimi', 'scallops', 'seaweed_salad', 'shrimp_and_grits', 'spaghetti_bolognese',
-    'spaghetti_carbonara', 'spring_rolls', 'steak', 'strawberry_shortcake', 'sushi', 'tacos', 'takoyaki', 'tiramisu',
-    'tuna_tartare', 'waffles'
-]
-recognizer = ImageRecognizer('models/yolov5s.pt', food101_class_names)
-generator = RecipeGenerator()
+recognizer = ImageRecognizer()
+generator = RecipeGenerator(api_key=os.getenv('OPENAI_API_KEY'))
 
 class Recipe(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -264,9 +253,9 @@ def analyze_image():
 
     ingredients = recognizer.recognize(image_path)
 
-    recipe_name, recipe_text = generator.generate_recipe(ingredients)
+    recipe_name, recipe_ingredients, recipe_steps = generator.generate_recipe(ingredients)
 
-    recipe = Recipe(name=recipe_name, ingredients=recipe_text, image_path=image_path)
+    recipe = Recipe(name=recipe_name, ingredients=f"{recipe_ingredients}\n\n{recipe_steps}", image_path=image_path)
     db.session.add(recipe)
     db.session.commit()
 

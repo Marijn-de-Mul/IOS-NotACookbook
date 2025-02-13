@@ -1,14 +1,21 @@
-import torch
+import os
+from google.cloud import vision
+from google.cloud.vision_v1 import types
 from PIL import Image
 
 class ImageRecognizer:
-    def __init__(self, model_path, class_names):
-        self.model = torch.hub.load('ultralytics/yolov5', 'custom', path=model_path, force_reload=True)
-        self.class_names = class_names
+    def __init__(self):
+        self.client = vision.ImageAnnotatorClient()
 
     def recognize(self, image_path):
-        image = Image.open(image_path)
-        results = self.model(image)
-        labels = results.xyxyn[0][:, -1].numpy()
-        ingredients = [self.class_names[int(label)] for label in labels if int(label) < len(self.class_names)]
+        with open(image_path, 'rb') as image_file:
+            content = image_file.read()
+        image = types.Image(content=content)
+        response = self.client.label_detection(image=image)
+        labels = response.label_annotations
+        ingredients = [label.description for label in labels]
         return ingredients
+
+    def load_image(self, image_file):
+        image = Image.open(image_file).convert('RGB')
+        return image
