@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
 
+# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -59,6 +60,18 @@ class Recipe(db.Model):
 
 with app.app_context():
     db.create_all()
+
+@app.before_request
+def log_request_info():
+    logger.info(f"Request Headers: {request.headers}")
+    logger.info(f"Request Body: {request.get_data()}")
+
+@app.after_request
+def log_response_info(response):
+    logger.info(f"Response Status: {response.status}")
+    logger.info(f"Response Headers: {response.headers}")
+    logger.info(f"Response Body: {response.get_data()}")
+    return response
 
 @app.route('/register', methods=['POST'])
 def register():
