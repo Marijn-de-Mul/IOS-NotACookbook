@@ -6,7 +6,6 @@ services:
     env_file:
       - .env
     volumes:
-      - .:/app
       - ./decisive-bazaar-450812-n8-247d0b92397c.json:/app/decisive-bazaar-450812-n8-247d0b92397c.json:ro
 
   watchtower:

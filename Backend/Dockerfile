@@ -21,4 +21,4 @@ RUN ls -la /app
 EXPOSE 5000
 
 # Run the application
-CMD ["ls"]
+CMD ["python", "app.py"]
