@@ -1,6 +1,6 @@
 services:
   ios_notacookbook_backend:
-    build: .
+    image: marijndemul16/iosnotacookbook.backend:latest
     ports:
       - "3600:5000"
     env_file:
