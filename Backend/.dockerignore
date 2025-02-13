@@ -1,0 +1,20 @@
+# Ignore the Dockerfile and .dockerignore file itself
+Dockerfile
+.dockerignore
+
+# Ignore Python cache files
+__pycache__
+*.pyc
+*.pyo
+
+# Ignore virtual environment directories
+venv
+env
+
+# Ignore version control directories
+.git
+.gitignore
+
+# Ignore other unnecessary files
+*.log
+*.tmp
