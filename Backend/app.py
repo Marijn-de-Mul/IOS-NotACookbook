@@ -58,6 +58,28 @@ with app.app_context():
 
 @app.route('/register', methods=['POST'])
 def register():
+    """
+    Register a new user
+    ---
+    tags:
+      - User
+    parameters:
+      - name: username
+        in: body
+        type: string
+        required: true
+        description: The username for the new user
+      - name: password
+        in: body
+        type: string
+        required: true
+        description: The password for the new user
+    responses:
+      201:
+        description: User registered successfully
+      400:
+        description: Username and password are required or Username already exists
+    """
     username = request.json.get('username')
     password = request.json.get('password')
     if not username or not password:
@@ -74,6 +96,36 @@ def register():
 
 @app.route('/login', methods=['POST'])
 def login():
+    """
+    Login a user
+    ---
+    tags:
+      - User
+    parameters:
+      - name: username
+        in: body
+        type: string
+        required: true
+        description: The username of the user
+      - name: password
+        in: body
+        type: string
+        required: true
+        description: The password of the user
+    responses:
+      200:
+        description: User logged in successfully
+        schema:
+          type: object
+          properties:
+            access_token:
+              type: string
+              description: The JWT access token
+      400:
+        description: Username and password are required
+      401:
+        description: Invalid username or password
+    """
     username = request.json.get('username')
     password = request.json.get('password')
     if not username or not password:
@@ -89,6 +141,19 @@ def login():
 @app.route('/recipes', methods=['GET'])
 @jwt_required()
 def get_recipes():
+    """
+    Get all recipes for the authenticated user
+    ---
+    tags:
+      - Recipe
+    responses:
+      200:
+        description: A list of recipes
+        schema:
+          type: array
+          items:
+            $ref: '#/definitions/Recipe'
+    """
     user_id = get_jwt_identity()
     recipes = Recipe.query.filter_by(user_id=user_id).all()
     return jsonify([recipe.as_dict() for recipe in recipes])
@@ -96,6 +161,25 @@ def get_recipes():
 @app.route('/recipes/<int:id>', methods=['GET'])
 @jwt_required()
 def get_recipe(id):
+    """
+    Get a specific recipe by ID for the authenticated user
+    ---
+    tags:
+      - Recipe
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+        description: The ID of the recipe
+    responses:
+      200:
+        description: The recipe details
+        schema:
+          $ref: '#/definitions/Recipe'
+      404:
+        description: Recipe not found
+    """
     user_id = get_jwt_identity()
     recipe = Recipe.query.filter_by(id=id, user_id=user_id).first_or_404()
     return jsonify(recipe.as_dict())
@@ -103,6 +187,33 @@ def get_recipe(id):
 @app.route('/recipes', methods=['POST'])
 @jwt_required()
 def add_recipe():
+    """
+    Add a new recipe for the authenticated user
+    ---
+    tags:
+      - Recipe
+    parameters:
+      - name: name
+        in: formData
+        type: string
+        required: true
+        description: The name of the recipe
+      - name: ingredients
+        in: formData
+        type: string
+        required: true
+        description: The ingredients of the recipe
+      - name: image
+        in: formData
+        type: file
+        required: false
+        description: An optional image of the recipe
+    responses:
+      201:
+        description: Recipe added successfully
+        schema:
+          $ref: '#/definitions/Recipe'
+    """
     user_id = get_jwt_identity()
     name = request.form['name']
     ingredients = request.form['ingredients']
@@ -122,6 +233,40 @@ def add_recipe():
 @app.route('/recipes/<int:id>', methods=['PUT'])
 @jwt_required()
 def update_recipe(id):
+    """
+    Update a recipe by ID for the authenticated user
+    ---
+    tags:
+      - Recipe
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+        description: The ID of the recipe
+      - name: name
+        in: formData
+        type: string
+        required: true
+        description: The name of the recipe
+      - name: ingredients
+        in: formData
+        type: string
+        required: true
+        description: The ingredients of the recipe
+      - name: image
+        in: formData
+        type: file
+        required: false
+        description: An optional image of the recipe
+    responses:
+      200:
+        description: Recipe updated successfully
+        schema:
+          $ref: '#/definitions/Recipe'
+      404:
+        description: Recipe not found
+    """
     user_id = get_jwt_identity()
     recipe = Recipe.query.filter_by(id=id, user_id=user_id).first_or_404()
     name = request.form['name']
@@ -142,6 +287,23 @@ def update_recipe(id):
 @app.route('/recipes/<int:id>', methods=['DELETE'])
 @jwt_required()
 def delete_recipe(id):
+    """
+    Delete a recipe by ID for the authenticated user
+    ---
+    tags:
+      - Recipe
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+        description: The ID of the recipe
+    responses:
+      200:
+        description: Recipe deleted successfully
+      404:
+        description: Recipe not found
+    """
     user_id = get_jwt_identity()
     recipe = Recipe.query.filter_by(id=id, user_id=user_id).first_or_404()
     db.session.delete(recipe)
@@ -151,6 +313,25 @@ def delete_recipe(id):
 @app.route('/analyze_image', methods=['POST'])
 @jwt_required()
 def analyze_image():
+    """
+    Analyze an image to generate a recipe for the authenticated user
+    ---
+    tags:
+      - Recipe
+    parameters:
+      - name: image
+        in: formData
+        type: file
+        required: true
+        description: The image to analyze
+    responses:
+      200:
+        description: Recipe generated successfully
+        schema:
+          $ref: '#/definitions/Recipe'
+      400:
+        description: No image uploaded
+    """
     user_id = get_jwt_identity()
     image = request.files.get('image')
     if not image:
