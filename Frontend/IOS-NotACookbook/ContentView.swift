@@ -189,7 +189,7 @@ struct AnalyzeImageResponse: Codable {
 
 class NetworkManager {
     static let shared = NetworkManager()
-    private let baseURL = "http://192.168.178.236:5000"
+    private let baseURL = "https://backend.inack.marijndemul.nl"
 
     func fetchRecipes(completion: @escaping ([Recipe]?) -> Void) {
         let url = URL(string: "\(baseURL)/recipes")!
