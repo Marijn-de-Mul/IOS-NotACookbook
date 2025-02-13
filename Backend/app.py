@@ -6,6 +6,8 @@ from werkzeug.utils import secure_filename
 from image_recognition import ImageRecognizer
 from recipe_generation import RecipeGenerator
 from dotenv import load_dotenv
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+from werkzeug.security import generate_password_hash, check_password_hash
 
 load_dotenv()
 
@@ -15,115 +17,93 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///recipes.db'
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  
+app.config['JWT_SECRET_KEY'] = '0cf963cb58107b1b7ab52d2642ca8a4fc40bfe072a03bfaec0536a17c876f77d89f53261d96b8a57d9b9530bcbf4157e1b1d7d20f3f7fee3c86119a9911502dd' 
 db = SQLAlchemy(app)
 swagger = Swagger(app)
+jwt = JWTManager(app)
 
 recognizer = ImageRecognizer()
 generator = RecipeGenerator(api_key=os.getenv('OPENAI_API_KEY'))
+
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
 class Recipe(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False)
     ingredients = db.Column(db.Text, nullable=False)
     image_path = db.Column(db.String(200), nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user = db.relationship('User', backref=db.backref('recipes', lazy=True))
 
     def as_dict(self):
         return {
             'id': self.id,
             'name': self.name,
             'ingredients': self.ingredients,
-            'image_path': self.image_path
+            'image_path': self.image_path,
+            'user_id': self.user_id
         }
 
 with app.app_context():
     db.create_all()
 
+@app.route('/register', methods=['POST'])
+def register():
+    username = request.json.get('username')
+    password = request.json.get('password')
+    if not username or not password:
+        return jsonify({'error': 'Username and password are required'}), 400
+
+    if User.query.filter_by(username=username).first():
+        return jsonify({'error': 'Username already exists'}), 400
+
+    user = User(username=username)
+    user.set_password(password)
+    db.session.add(user)
+    db.session.commit()
+    return jsonify({'message': 'User registered successfully'}), 201
+
+@app.route('/login', methods=['POST'])
+def login():
+    username = request.json.get('username')
+    password = request.json.get('password')
+    if not username or not password:
+        return jsonify({'error': 'Username and password are required'}), 400
+
+    user = User.query.filter_by(username=username).first()
+    if user is None or not user.check_password(password):
+        return jsonify({'error': 'Invalid username or password'}), 401
+
+    access_token = create_access_token(identity=user.id)
+    return jsonify({'access_token': access_token}), 200
+
 @app.route('/recipes', methods=['GET'])
+@jwt_required()
 def get_recipes():
-    """
-    Get all recipes
-    ---
-    responses:
-      200:
-        description: A list of recipes
-        schema:
-          type: array
-          items:
-            type: object
-            properties:
-              id:
-                type: integer
-              name:
-                type: string
-              ingredients:
-                type: string
-              image_path:
-                type: string
-    """
-    recipes = Recipe.query.all()
+    user_id = get_jwt_identity()
+    recipes = Recipe.query.filter_by(user_id=user_id).all()
     return jsonify([recipe.as_dict() for recipe in recipes])
 
 @app.route('/recipes/<int:id>', methods=['GET'])
+@jwt_required()
 def get_recipe(id):
-    """
-    Get a single recipe by ID
-    ---
-    parameters:
-      - name: id
-        in: path
-        type: integer
-        required: true
-    responses:
-      200:
-        description: A single recipe
-        schema:
-          type: object
-          properties:
-            id:
-              type: integer
-            name:
-              type: string
-            ingredients:
-              type: string
-            image_path:
-              type: string
-    """
-    recipe = Recipe.query.get_or_404(id)
+    user_id = get_jwt_identity()
+    recipe = Recipe.query.filter_by(id=id, user_id=user_id).first_or_404()
     return jsonify(recipe.as_dict())
 
 @app.route('/recipes', methods=['POST'])
+@jwt_required()
 def add_recipe():
-    """
-    Add a new recipe
-    ---
-    parameters:
-      - name: name
-        in: formData
-        type: string
-        required: true
-      - name: ingredients
-        in: formData
-        type: string
-        required: true
-      - name: image
-        in: formData
-        type: file
-        required: false
-    responses:
-      201:
-        description: The created recipe
-        schema:
-          type: object
-          properties:
-            id:
-              type: integer
-            name:
-              type: string
-            ingredients:
-              type: string
-            image_path:
-              type: string
-    """
+    user_id = get_jwt_identity()
     name = request.form['name']
     ingredients = request.form['ingredients']
     image = request.files.get('image')
@@ -134,49 +114,16 @@ def add_recipe():
         image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         image.save(image_path)
 
-    recipe = Recipe(name=name, ingredients=ingredients, image_path=image_path)
+    recipe = Recipe(name=name, ingredients=ingredients, image_path=image_path, user_id=user_id)
     db.session.add(recipe)
     db.session.commit()
     return jsonify(recipe.as_dict()), 201
 
 @app.route('/recipes/<int:id>', methods=['PUT'])
+@jwt_required()
 def update_recipe(id):
-    """
-    Update an existing recipe
-    ---
-    parameters:
-      - name: id
-        in: path
-        type: integer
-        required: true
-      - name: name
-        in: formData
-        type: string
-        required: true
-      - name: ingredients
-        in: formData
-        type: string
-        required: true
-      - name: image
-        in: formData
-        type: file
-        required: false
-    responses:
-      200:
-        description: The updated recipe
-        schema:
-          type: object
-          properties:
-            id:
-              type: integer
-            name:
-              type: string
-            ingredients:
-              type: string
-            image_path:
-              type: string
-    """
-    recipe = Recipe.query.get_or_404(id)
+    user_id = get_jwt_identity()
+    recipe = Recipe.query.filter_by(id=id, user_id=user_id).first_or_404()
     name = request.form['name']
     ingredients = request.form['ingredients']
     image = request.files.get('image')
@@ -193,56 +140,18 @@ def update_recipe(id):
     return jsonify(recipe.as_dict())
 
 @app.route('/recipes/<int:id>', methods=['DELETE'])
+@jwt_required()
 def delete_recipe(id):
-    """
-    Delete a recipe by ID
-    ---
-    parameters:
-      - name: id
-        in: path
-        type: integer
-        required: true
-    responses:
-      200:
-        description: The deleted recipe
-        schema:
-          type: object
-          properties:
-            id:
-              type: integer
-            name:
-              type: string
-            ingredients:
-              type: string
-            image_path:
-              type: string
-    """
-    recipe = Recipe.query.get_or_404(id)
+    user_id = get_jwt_identity()
+    recipe = Recipe.query.filter_by(id=id, user_id=user_id).first_or_404()
     db.session.delete(recipe)
     db.session.commit()
     return jsonify({'message': 'Recipe deleted successfully'}), 200
 
 @app.route('/analyze_image', methods=['POST'])
+@jwt_required()
 def analyze_image():
-    """
-    Analyze an uploaded image using the AI model
-    ---
-    parameters:
-      - name: image
-        in: formData
-        type: file
-        required: true
-    responses:
-      200:
-        description: The analysis result
-        schema:
-          type: object
-          properties:
-            class_name:
-              type: string
-            confidence:
-              type: number
-    """
+    user_id = get_jwt_identity()
     image = request.files.get('image')
     if not image:
         return jsonify({'error': 'No image uploaded'}), 400
@@ -255,7 +164,7 @@ def analyze_image():
 
     recipe_name, recipe_ingredients, recipe_steps = generator.generate_recipe(ingredients)
 
-    recipe = Recipe(name=recipe_name, ingredients=f"{recipe_ingredients}\n\n{recipe_steps}", image_path=image_path)
+    recipe = Recipe(name=recipe_name, ingredients=f"{recipe_ingredients}\n\n{recipe_steps}", image_path=image_path, user_id=user_id)
     db.session.add(recipe)
     db.session.commit()
 
