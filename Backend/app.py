@@ -64,16 +64,19 @@ def register():
     tags:
       - User
     parameters:
-      - name: username
+      - name: body
         in: body
-        type: string
         required: true
-        description: The username for the new user
-      - name: password
-        in: body
-        type: string
-        required: true
-        description: The password for the new user
+        schema:
+          type: object
+          required:
+            - username
+            - password
+          properties:
+            username:
+              type: string
+            password:
+              type: string
     responses:
       201:
         description: User registered successfully
@@ -102,16 +105,19 @@ def login():
     tags:
       - User
     parameters:
-      - name: username
+      - name: body
         in: body
-        type: string
         required: true
-        description: The username of the user
-      - name: password
-        in: body
-        type: string
-        required: true
-        description: The password of the user
+        schema:
+          type: object
+          required:
+            - username
+            - password
+          properties:
+            username:
+              type: string
+            password:
+              type: string
     responses:
       200:
         description: User logged in successfully
