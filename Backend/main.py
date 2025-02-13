@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = 'e:/IOS-NotACookbook/Backend/decisive-bazaar-450812-n8-247d0b92397c.json'
+os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///recipes.db'
