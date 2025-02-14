@@ -89,52 +89,52 @@ def log_response_info(response):
         logger.info(f"Response Body: {response.get_data()}")
     return response
 
-# @app.route('/register', methods=['POST'])
-# def register():
-#     """
-#     Register a new user
-#     ---
-#     tags:
-#       - User
-#     parameters:
-#       - name: body
-#         in: body
-#         required: true
-#         schema:
-#           type: object
-#           required:
-#             - username
-#             - password
-#           properties:
-#             username:
-#               type: string
-#               description: The username for the new user
-#             password:
-#               type: string
-#               description: The password for the new user
-#     responses:
-#       201:
-#         description: User registered successfully
-#       400:
-#         description: Username and password are required or Username already exists
-#     """
-#     logger.info("Register endpoint called")
-#     username = request.json.get('username')
-#     password = request.json.get('password')
-#     if not username or not password:
-#         logger.warning("Username and password are required")
-#         return jsonify({'error': 'Username and password are required'}), 400
+@app.route('/register', methods=['POST'])
+def register():
+    """
+    Register a new user
+    ---
+    tags:
+      - User
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          required:
+            - username
+            - password
+          properties:
+            username:
+              type: string
+              description: The username for the new user
+            password:
+              type: string
+              description: The password for the new user
+    responses:
+      201:
+        description: User registered successfully
+      400:
+        description: Username and password are required or Username already exists
+    """
+    logger.info("Register endpoint called")
+    username = request.json.get('username')
+    password = request.json.get('password')
+    if not username or not password:
+        logger.warning("Username and password are required")
+        return jsonify({'error': 'Username and password are required'}), 400
 
-#     if User.query.filter_by(username=username).first():
-#         logger.warning("Username already exists")
-#         return jsonify({'error': 'Username already exists'}), 400
+    if User.query.filter_by(username=username).first():
+        logger.warning("Username already exists")
+        return jsonify({'error': 'Username already exists'}), 400
 
-#     user = User(username=username)
-#     user.set_password(password)
-#     db.session.add(user)
-#     db.session.commit()
-#     logger.info("User registered successfully")
-#     return jsonify({'message': 'User registered successfully'}), 201
+    user = User(username=username)
+    user.set_password(password)
+    db.session.add(user)
+    db.session.commit()
+    logger.info("User registered successfully")
+    return jsonify({'message': 'User registered successfully'}), 201
 
 @app.route('/login', methods=['POST'])
 def login():
