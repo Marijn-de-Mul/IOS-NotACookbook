@@ -7,6 +7,7 @@ services:
       - .env
     volumes:
       - ./decisive-bazaar-450812-n8-247d0b92397c.json:/app/decisive-bazaar-450812-n8-247d0b92397c.json:ro
+      - ios_notacookbook:/app
 
   watchtower:
     image: containrrr/watchtower
@@ -16,3 +17,7 @@ services:
       - WATCHTOWER_CLEANUP=true
       - WATCHTOWER_LABEL_ENABLE=true
     restart: unless-stopped
+
+volumes:
+  ios_notacookbook:
+    driver: local
