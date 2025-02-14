@@ -23,7 +23,23 @@ app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  
 app.config['JWT_SECRET_KEY'] = '0cf963cb58107b1b7ab52d2642ca8a4fc40bfe072a03bfaec0536a17c876f77d89f53261d96b8a57d9b9530bcbf4157e1b1d7d20f3f7fee3c86119a9911502dd' 
 db = SQLAlchemy(app)
-swagger = Swagger(app)
+
+swagger_config = {
+    "headers": [],
+    "specs": [
+        {
+            "endpoint": 'apispec_1',
+            "route": '/apispec_1.json',
+            "rule_filter": lambda rule: True,  
+            "model_filter": lambda tag: True, 
+        }
+    ],
+    "static_url_path": "/flasgger_static",
+    "swagger_ui": True,
+    "specs_route": "/swagger/"
+}
+
+swagger = Swagger(app, config=swagger_config)
 jwt = JWTManager(app)
 
 recognizer = ImageRecognizer()
@@ -69,7 +85,8 @@ def log_request_info():
 def log_response_info(response):
     logger.info(f"Response Status: {response.status}")
     logger.info(f"Response Headers: {response.headers}")
-    logger.info(f"Response Body: {response.get_data()}")
+    if not response.direct_passthrough:
+        logger.info(f"Response Body: {response.get_data()}")
     return response
 
 @app.route('/register', methods=['POST'])
