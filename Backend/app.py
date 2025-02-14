@@ -131,7 +131,7 @@ def register():
 
     user = User(username=username)
     user.set_password(password)
-    db.session.add(user)çççç
+    db.session.add(user)
     db.session.commit()
     logger.info("User registered successfully")
     return jsonify({'message': 'User registered successfully'}), 201
