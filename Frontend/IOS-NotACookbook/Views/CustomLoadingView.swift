@@ -13,9 +13,10 @@ struct CustomLoadingView: View {
                     .stroke(AngularGradient(gradient: Gradient(colors: [.blue, .purple, .pink, .blue]), center: .center), style: StrokeStyle(lineWidth: 8, lineCap: .round))
                     .frame(width: 100, height: 100)
                     .rotationEffect(Angle(degrees: isAnimating ? 360 : 0))
-                    .animation(Animation.linear(duration: 1).repeatForever(autoreverses: false))
                     .onAppear {
-                        self.isAnimating = true
+                        withAnimation(Animation.linear(duration: 1).repeatForever(autoreverses: false)) {
+                            self.isAnimating = true
+                        }
                     }
                 Text("Analyzing image...")
                     .foregroundColor(.white)
