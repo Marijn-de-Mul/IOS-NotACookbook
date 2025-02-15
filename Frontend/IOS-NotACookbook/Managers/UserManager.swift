@@ -1,6 +1,8 @@
 import Foundation
 
 class UserManager: ObservableObject {
+    static let shared = UserManager()
+    
     @Published var isAuthenticated = false
     @Published var token: String? {
         didSet {

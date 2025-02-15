@@ -10,6 +10,11 @@ class NetworkManager {
         var request = URLRequest(url: url)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         URLSession.shared.dataTask(with: request) { data, response, error in
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                UserManager.shared.logout()
+                completion(nil)
+                return
+            }
             guard let data = data, error == nil else {
                 completion(nil)
                 return
@@ -38,6 +43,11 @@ class NetworkManager {
         request.httpBody = body
 
         URLSession.shared.dataTask(with: request) { data, response, error in
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                UserManager.shared.logout()
+                completion(nil)
+                return
+            }
             guard let data = data, error == nil else {
                 completion(nil)
                 return
@@ -54,6 +64,11 @@ class NetworkManager {
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
 
         URLSession.shared.dataTask(with: request) { data, response, error in
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                UserManager.shared.logout()
+                completion(false)
+                return
+            }
             guard error == nil else {
                 completion(false)
                 return
@@ -71,6 +86,11 @@ class NetworkManager {
         request.httpBody = try? JSONSerialization.data(withJSONObject: body, options: [])
 
         URLSession.shared.dataTask(with: request) { data, response, error in
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                UserManager.shared.logout()
+                completion(nil)
+                return
+            }
             guard let data = data, error == nil else {
                 completion(nil)
                 return
@@ -89,6 +109,11 @@ class NetworkManager {
         request.httpBody = try? JSONSerialization.data(withJSONObject: body, options: [])
 
         URLSession.shared.dataTask(with: request) { data, response, error in
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                UserManager.shared.logout()
+                completion(false)
+                return
+            }
             guard let data = data, error == nil else {
                 completion(false)
                 return
