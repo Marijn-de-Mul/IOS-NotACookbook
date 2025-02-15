@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 class UserManager: ObservableObject {
     static let shared = UserManager()
@@ -13,6 +14,8 @@ class UserManager: ObservableObject {
             }
         }
     }
+    
+    @Published var currentView: AnyView = AnyView(LoginView())
 
     init() {
         self.token = UserDefaults.standard.string(forKey: "authToken")
@@ -44,5 +47,6 @@ class UserManager: ObservableObject {
     func logout() {
         self.token = nil
         self.isAuthenticated = false
+        self.currentView = AnyView(LoginView())
     }
 }
